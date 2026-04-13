@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cat vs Dog Classifier</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --cat: #FF6B9D;
+            --dog: #4FC3F7;
+            --gold: #FFD166;
+            --bg: #09090F;
+            --surface: rgba(255,255,255,0.05);
+            --border: rgba(255,255,255,0.09);
+            --text: #EEEAF8;
+            --muted: rgba(238,234,248,0.42);
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Animated background orbs */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(90px);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .orb-1 {
+            width: 480px; height: 480px;
+            background: radial-gradient(circle, rgba(255,107,157,0.22), transparent 70%);
+            top: -140px; left: -100px;
+            animation: orbDrift1 14s ease-in-out infinite alternate;
+        }
+        .orb-2 {
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(79,195,247,0.2), transparent 70%);
+            bottom: -120px; right: -80px;
+            animation: orbDrift2 17s ease-in-out infinite alternate;
+        }
+        .orb-3 {
+            width: 280px; height: 280px;
+            background: radial-gradient(circle, rgba(255,209,102,0.1), transparent 70%);
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            animation: orbDrift3 10s ease-in-out infinite alternate;
+        }
+        @keyframes orbDrift1 {
+            from { transform: translate(0,0) scale(1); }
+            to   { transform: translate(60px,80px) scale(1.15); }
+        }
+        @keyframes orbDrift2 {
+            from { transform: translate(0,0) scale(1); }
+            to   { transform: translate(-50px,-60px) scale(1.1); }
+        }
+        @keyframes orbDrift3 {
+            from { transform: translate(-50%,-50%) scale(1); }
+            to   { transform: translate(-46%,-54%) scale(1.2); }
+        }
+
+        /* Floating particles */
+        .particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0;
+            animation: particleFloat linear infinite;
+        }
+        @keyframes particleFloat {
+            0%   { transform: translateY(105vh) scale(0); opacity: 0; }
+            8%   { opacity: 1; transform: translateY(95vh) scale(1); }
+            92%  { opacity: 0.7; }
+            100% { transform: translateY(-5vh) scale(0.4); opacity: 0; }
+        }
+
+        /* Main wrapper */
+        .wrapper {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 470px;
+            padding: 20px;
+            animation: wrapperIn 0.9s cubic-bezier(0.22,1,0.36,1) both;
+        }
+        @keyframes wrapperIn {
+            from { opacity: 0; transform: translateY(36px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Card */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 26px;
+            padding: 28px 32px 24px;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            box-shadow: 0 30px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 26px;
+            background: linear-gradient(135deg, rgba(255,107,157,0.6), transparent 40%, rgba(79,195,247,0.6));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            padding: 1px;
+            opacity: 0;
+            animation: borderReveal 1.2s 0.6s ease forwards;
+            pointer-events: none;
+        }
+        @keyframes borderReveal {
+            to { opacity: 0.55; }
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 18px;
+            animation: fadeUp 0.7s 0.2s both;
+        }
+        .icons-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .icon-badge {
+            width: 42px; height: 42px;
+            border-radius: 13px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 21px;
+        }
+        .cat-badge {
+            background: rgba(255,107,157,0.14);
+            border: 1px solid rgba(255,107,157,0.24);
+            animation: iconBounce 2.6s ease-in-out infinite;
+        }
+        .dog-badge {
+            background: rgba(79,195,247,0.14);
+            border: 1px solid rgba(79,195,247,0.24);
+            animation: iconBounce 2.6s 0.35s ease-in-out infinite;
+        }
+        .vs-badge {
+            width: 30px; height: 30px;
+            background: rgba(255,209,102,0.12);
+            border: 1px solid rgba(255,209,102,0.22);
+            font-size: 9px;
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            color: var(--gold);
+            letter-spacing: 0.5px;
+        }
+        @keyframes iconBounce {
+            0%,100% { transform: translateY(0); }
+            45%      { transform: translateY(-7px); }
+        }
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+            background: linear-gradient(110deg, var(--cat), var(--gold), var(--dog));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .subtitle {
+            color: var(--muted);
+            font-size: 0.8rem;
+            margin-top: 3px;
+            font-weight: 300;
+        }
+
+        /* Divider */
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border), transparent);
+            margin: 16px 0;
+            animation: fadeUp 0.7s 0.3s both;
+        }
+
+        /* Upload button */
+        .upload-area { animation: fadeUp 0.7s 0.38s both; }
+
+        #fileInput {
+            position: absolute;
+            width: 1px; height: 1px;
+            opacity: 0; pointer-events: none;
+        }
+
+        .upload-btn {
+            width: 100%;
+            border: none;
+            background: none;
+            cursor: pointer;
+            display: block;
+            padding: 0;
+            text-align: left;
+        }
+        .upload-face {
+            border: 1.5px dashed rgba(255,255,255,0.16);
+            border-radius: 16px;
+            padding: 18px 16px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            background: rgba(255,255,255,0.02);
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.28s, box-shadow 0.28s, transform 0.2s, background 0.28s;
+        }
+        .upload-face::after {
+            content: '';
+            position: absolute; inset: 0;
+            background: linear-gradient(135deg,rgba(255,107,157,0.07),rgba(79,195,247,0.07));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .upload-btn:hover .upload-face {
+            border-color: rgba(255,107,157,0.5);
+            box-shadow: 0 0 26px rgba(255,107,157,0.12);
+            transform: translateY(-2px);
+        }
+        .upload-btn:hover .upload-face::after { opacity: 1; }
+        .upload-btn:active .upload-face { transform: scale(0.98); }
+        .upload-face.drag-over {
+            border-color: var(--gold);
+            box-shadow: 0 0 28px rgba(255,209,102,0.18);
+            background: rgba(255,209,102,0.04);
+        }
+
+        .upload-icon-wrap {
+            width: 48px; height: 48px;
+            border-radius: 13px;
+            background: rgba(255,107,157,0.12);
+            border: 1px solid rgba(255,107,157,0.2);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+            transition: transform 0.3s, background 0.3s;
+            position: relative; z-index: 1;
+        }
+        .upload-btn:hover .upload-icon-wrap {
+            transform: rotate(-9deg) scale(1.1);
+            background: rgba(255,107,157,0.22);
+        }
+        .upload-text-wrap { flex: 1; position: relative; z-index: 1; }
+        .upload-title {
+            font-size: 0.88rem; font-weight: 600;
+            color: var(--text); display: block; margin-bottom: 2px;
+        }
+        .upload-hint { font-size: 0.73rem; color: var(--muted); font-weight: 300; }
+        .upload-arrow {
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; flex-shrink: 0;
+            transition: transform 0.3s, background 0.3s;
+            position: relative; z-index: 1;
+        }
+        .upload-btn:hover .upload-arrow {
+            transform: translateX(4px);
+            background: rgba(255,107,157,0.2);
+        }
+
+        /* File chip */
+        .file-chip {
+            display: none;
+            align-items: center; gap: 8px;
+            margin-top: 9px;
+            padding: 6px 12px;
+            background: rgba(255,209,102,0.1);
+            border: 1px solid rgba(255,209,102,0.22);
+            border-radius: 50px;
+            font-size: 0.74rem; color: var(--gold); font-weight: 500;
+            animation: chipPop 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+        }
+        @keyframes chipPop {
+            from { transform: scale(0.7); opacity: 0; }
+            to   { transform: scale(1); opacity: 1; }
+        }
+        .chip-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--gold); flex-shrink: 0;
+            animation: chipPulse 1.4s ease-in-out infinite;
+        }
+        @keyframes chipPulse {
+            0%,100% { transform: scale(1); opacity: 1; }
+            50%      { transform: scale(1.5); opacity: 0.55; }
+        }
+
+        /* Preview strip */
+        .preview-strip {
+            display: none;
+            margin-top: 10px;
+            border-radius: 13px;
+            overflow: hidden;
+            height: 110px;
+            position: relative;
+            animation: previewReveal 0.5s cubic-bezier(0.22,1,0.36,1) both;
+        }
+        @keyframes previewReveal {
+            from { opacity: 0; transform: scaleY(0.55); transform-origin: top; }
+            to   { opacity: 1; transform: scaleY(1); }
+        }
+        .preview-strip img {
+            width: 100%; height: 100%; object-fit: cover; display: block;
+            transition: transform 0.4s;
+        }
+        .preview-strip:hover img { transform: scale(1.05); }
+        .preview-strip::after {
+            content: '';
+            position: absolute; inset: 0;
+            background: linear-gradient(to bottom, transparent 40%, rgba(9,9,15,0.65));
+            pointer-events: none;
+        }
+        .preview-label {
+            position: absolute; bottom: 8px; left: 11px;
+            font-size: 0.7rem; color: rgba(255,255,255,0.65);
+            font-weight: 500; z-index: 1; letter-spacing: 0.4px;
+        }
+
+        /* Classify button */
+        .btn-classify {
+            margin-top: 12px;
+            width: 100%; padding: 13px;
+            background: linear-gradient(130deg, var(--cat) 0%, #c84b82 100%);
+            border: none; border-radius: 13px;
+            color: white;
+            font-family: 'Syne', sans-serif;
+            font-size: 0.92rem; font-weight: 800; letter-spacing: 0.4px;
+            cursor: pointer;
+            position: relative; overflow: hidden;
+            box-shadow: 0 6px 22px rgba(255,107,157,0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+            animation: fadeUp 0.7s 0.52s both;
+        }
+        .btn-classify::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -75%; width: 50%; height: 100%;
+            background: linear-gradient(90deg,transparent,rgba(255,255,255,0.22),transparent);
+            transform: skewX(-20deg);
+            transition: left 0.55s ease;
+        }
+        .btn-classify:hover::before { left: 130%; }
+        .btn-classify:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 32px rgba(255,107,157,0.44);
+        }
+        .btn-classify:active { transform: scale(0.98); }
+        .btn-classify.loading { pointer-events: none; opacity: 0.75; }
+        .btn-content { display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-spinner {
+            display: none;
+            width: 15px; height: 15px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.65s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Progress bar */
+        .progress-wrap {
+            display: none; margin-top: 9px;
+            height: 3px; background: rgba(255,255,255,0.07);
+            border-radius: 3px; overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%; width: 0%; border-radius: 3px;
+            background: linear-gradient(90deg, var(--cat), var(--dog), var(--cat));
+            background-size: 200% 100%;
+            transition: width 0.25s ease;
+            animation: barShimmer 1.5s linear infinite;
+        }
+        @keyframes barShimmer {
+            0%   { background-position: 0% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        /* Result */
+        .result-box {
+            margin-top: 14px;
+            border-radius: 16px;
+            padding: 16px 18px;
+            display: flex; align-items: center; gap: 13px;
+            position: relative; overflow: hidden;
+            animation: resultSlide 0.65s cubic-bezier(0.22,1,0.36,1) both;
+        }
+        @keyframes resultSlide {
+            from { opacity: 0; transform: translateY(14px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .cat-result {
+            background: rgba(255,107,157,0.09);
+            border: 1px solid rgba(255,107,157,0.26);
+            box-shadow: 0 0 32px rgba(255,107,157,0.1);
+        }
+        .dog-result {
+            background: rgba(79,195,247,0.09);
+            border: 1px solid rgba(79,195,247,0.26);
+            box-shadow: 0 0 32px rgba(79,195,247,0.1);
+        }
+        .result-box::before {
+            content: '';
+            position: absolute; top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: conic-gradient(from 0deg, transparent 340deg, rgba(255,255,255,0.04) 360deg);
+            animation: sweepGlow 3s linear infinite;
+            pointer-events: none;
+        }
+        @keyframes sweepGlow { to { transform: rotate(360deg); } }
+
+        .result-animal {
+            width: 48px; height: 48px; border-radius: 13px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; flex-shrink: 0;
+            animation: animalPop 0.5s 0.15s cubic-bezier(0.34,1.56,0.64,1) both;
+            position: relative;
+        }
+        .cat-result .result-animal { background: rgba(255,107,157,0.18); }
+        .dog-result .result-animal { background: rgba(79,195,247,0.18); }
+        @keyframes animalPop {
+            from { transform: scale(0) rotate(-15deg); }
+            to   { transform: scale(1) rotate(0deg); }
+        }
+        .result-info { flex: 1; position: relative; z-index: 1; }
+        .result-label {
+            font-size: 0.68rem; text-transform: uppercase;
+            letter-spacing: 1.8px; color: var(--muted); font-weight: 500; margin-bottom: 2px;
+        }
+        .result-name {
+            font-family: 'Syne', sans-serif; font-size: 1.25rem; font-weight: 800;
+        }
+        .cat-result .result-name { color: var(--cat); }
+        .dog-result .result-name { color: var(--dog); }
+        .result-tag {
+            font-size: 0.7rem; padding: 2px 10px;
+            border-radius: 50px; font-weight: 500;
+            margin-top: 4px; display: inline-block;
+        }
+        .cat-result .result-tag { background: rgba(255,107,157,0.16); color: var(--cat); }
+        .dog-result .result-tag { background: rgba(79,195,247,0.16); color: var(--dog); }
+
+        /* Confetti */
+        .confetti {
+            position: absolute; width: 5px; height: 5px; border-radius: 50%;
+            animation: confettiBurst ease-out both;
+        }
+        @keyframes confettiBurst {
+            from { opacity: 1; transform: translate(0,0) scale(1); }
+            to   { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0.2); }
+        }
+
+        /* Error toast */
+        .error-popup {
+            position: fixed; top: 18px; right: 18px;
+            background: linear-gradient(135deg, #9B1C1C, #C81E1E);
+            padding: 12px 18px; border-radius: 13px;
+            font-size: 0.84rem; font-weight: 500;
+            display: flex; align-items: center; gap: 9px;
+            box-shadow: 0 10px 28px rgba(200,30,30,0.38);
+            animation: toastIn 0.45s cubic-bezier(0.22,1,0.36,1) both;
+            z-index: 100;
+            border: 1px solid rgba(255,100,100,0.28);
+        }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateX(70px) scale(0.95); }
+            to   { opacity: 1; transform: translateX(0) scale(1); }
+        }
+        .error-popup.out { animation: toastOut 0.35s ease-in both; }
+        @keyframes toastOut {
+            to { opacity: 0; transform: translateX(70px) scale(0.9); }
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="particles" id="particles"></div>
+
+    <div class="wrapper">
+        <div class="card">
+
+            <div class="header">
+                <div class="icons-row">
+                    <div class="icon-badge cat-badge">🐱</div>
+                    <div class="icon-badge vs-badge">VS</div>
+                    <div class="icon-badge dog-badge">🐶</div>
+                </div>
+                <h1>Cat vs Dog Classifier</h1>
+                <p class="subtitle">AI-powered · Upload a photo to identify</p>
+            </div>
+
+            <div class="divider"></div>
+
+            <form method="POST" enctype="multipart/form-data" id="classifierForm">
+
+                <input type="file" name="file" id="fileInput" accept="image/*" required>
+
+                <div class="upload-area">
+                    <button type="button" class="upload-btn" id="uploadBtn" aria-label="Upload image">
+                        <div class="upload-face" id="uploadFace">
+                            <div class="upload-icon-wrap" id="uploadIconWrap">📷</div>
+                            <div class="upload-text-wrap">
+                                <span class="upload-title" id="uploadTitle">Click to Upload Image</span>
+                                <span class="upload-hint">Supports JPG · PNG · WEBP — Max 10MB</span>
+                            </div>
+                            <div class="upload-arrow">→</div>
+                        </div>
+                    </button>
+
+                    <div class="file-chip" id="fileChip">
+                        <span class="chip-dot"></span>
+                        <span id="chipLabel">file.jpg</span>
+                    </div>
+
+                    <div class="preview-strip" id="previewStrip">
+                        <img id="previewImg"
+                            {% if image %}src="data:image/jpeg;base64,{{ image }}"{% endif %}
+                            alt="Preview">
+                        <span class="preview-label">Preview</span>
+                    </div>
+                </div>
+
+                <div class="progress-wrap" id="progressWrap">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+
+                <button type="submit" class="btn-classify" id="classifyBtn">
+                    <div class="btn-content">
+                        <span id="btnLabel">✨ Classify Image</span>
+                        <div class="btn-spinner" id="btnSpinner"></div>
+                    </div>
+                </button>
+            </form>
+
+            {% if prediction %}
+            <div class="result-box {% if 'Cat' in prediction or 'cat' in prediction %}cat-result{% else %}dog-result{% endif %}" id="resultBox">
+                <div class="result-animal">
+                    {% if 'Cat' in prediction or 'cat' in prediction %}🐱{% else %}🐶{% endif %}
+                </div>
+                <div class="result-info">
+                    <div class="result-label">Detected</div>
+                    <div class="result-name">{{ prediction }}</div>
+                    <span class="result-tag">
+                        {% if 'Cat' in prediction or 'cat' in prediction %}Feline confirmed 🎀{% else %}Canine confirmed 🦴{% endif %}
+                    </span>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="error-popup" id="errorToast">⚠️ Please upload a valid Cat or Dog image!</div>
+    {% endif %}
+
+    <script>
+        /* Floating particles */
+        (function() {
+            const wrap = document.getElementById('particles');
+            const colors = ['#FF6B9D','#4FC3F7','#FFD166','rgba(255,255,255,0.5)'];
+            for (let i = 0; i < 22; i++) {
+                const d = document.createElement('div');
+                d.classList.add('particle');
+                const size = 2 + Math.random() * 4;
+                d.style.cssText = `left:${Math.random()*100}vw;width:${size}px;height:${size}px;background:${colors[Math.floor(Math.random()*colors.length)]};animation-duration:${10+Math.random()*14}s;animation-delay:${-(Math.random()*14)}s;`;
+                wrap.appendChild(d);
+            }
+        })();
+
+        /* Upload button → file dialog */
+        const uploadBtn    = document.getElementById('uploadBtn');
+        const fileInput    = document.getElementById('fileInput');
+        const uploadFace   = document.getElementById('uploadFace');
+        const previewStrip = document.getElementById('previewStrip');
+        const previewImg   = document.getElementById('previewImg');
+        const fileChip     = document.getElementById('fileChip');
+        const chipLabel    = document.getElementById('chipLabel');
+        const uploadTitle  = document.getElementById('uploadTitle');
+        const uploadIconWrap = document.getElementById('uploadIconWrap');
+
+        uploadBtn.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (!file) return;
+            chipLabel.textContent = file.name.length > 28 ? file.name.slice(0,25)+'…' : file.name;
+            fileChip.style.display = 'flex';
+            uploadIconWrap.textContent = '✅';
+            uploadTitle.textContent = 'Image Selected';
+            const reader = new FileReader();
+            reader.onload = e => {
+                previewImg.src = e.target.result;
+                previewStrip.style.display = 'block';
+                previewStrip.style.animation = 'none';
+                requestAnimationFrame(() => {
+                    previewStrip.style.animation = 'previewReveal 0.5s cubic-bezier(0.22,1,0.36,1) both';
+                });
+            };
+            reader.readAsDataURL(file);
+        });
+
+        /* Drag & drop */
+        uploadFace.addEventListener('dragover', e => { e.preventDefault(); uploadFace.classList.add('drag-over'); });
+        ['dragleave','drop'].forEach(ev => {
+            uploadFace.addEventListener(ev, e => { e.preventDefault(); uploadFace.classList.remove('drag-over'); });
+        });
+        uploadFace.addEventListener('drop', e => {
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                fileInput.files = dt.files;
+                fileInput.dispatchEvent(new Event('change'));
+            }
+        });
+
+        /* Show server-rendered preview */
+        if (previewImg && previewImg.getAttribute('src') && previewImg.getAttribute('src').length > 50) {
+            previewStrip.style.display = 'block';
+        }
+
+        /* Submit loading state */
+        document.getElementById('classifierForm').addEventListener('submit', () => {
+            const btn     = document.getElementById('classifyBtn');
+            const label   = document.getElementById('btnLabel');
+            const spinner = document.getElementById('btnSpinner');
+            const wrap    = document.getElementById('progressWrap');
+            const bar     = document.getElementById('progressBar');
+            btn.classList.add('loading');
+            label.textContent = 'Analyzing…';
+            spinner.style.display = 'block';
+            wrap.style.display = 'block';
+            let pct = 0;
+            const iv = setInterval(() => {
+                pct = Math.min(pct + Math.random()*11 + 2, 88);
+                bar.style.width = pct + '%';
+                if (pct >= 88) clearInterval(iv);
+            }, 180);
+        });
+
+        /* Confetti burst */
+        const resultBox = document.getElementById('resultBox');
+        if (resultBox) {
+            const isCat = resultBox.classList.contains('cat-result');
+            const palette = isCat ? ['#FF6B9D','#FFB3D0','#FFD166','#fff'] : ['#4FC3F7','#B3E9FF','#FFD166','#fff'];
+            for (let i = 0; i < 20; i++) {
+                const c = document.createElement('div');
+                c.classList.add('confetti');
+                c.style.background = palette[Math.floor(Math.random()*palette.length)];
+                c.style.left = (20+Math.random()*60)+'%';
+                c.style.top  = (20+Math.random()*60)+'%';
+                const ang = Math.random()*2*Math.PI, dist = 28+Math.random()*55;
+                c.style.setProperty('--tx', Math.cos(ang)*dist+'px');
+                c.style.setProperty('--ty', Math.sin(ang)*dist+'px');
+                c.style.animationDuration = (0.7+Math.random()*0.7)+'s';
+                c.style.animationDelay    = (0.05+Math.random()*0.35)+'s';
+                resultBox.appendChild(c);
+            }
+        }
+
+        /* Error toast dismiss */
+        const toast = document.getElementById('errorToast');
+        if (toast) {
+            setTimeout(() => {
+                toast.classList.add('out');
+                setTimeout(() => toast.remove(), 350);
+            }, 3200);
+        }
+    </script>
+</body>
+</html>
